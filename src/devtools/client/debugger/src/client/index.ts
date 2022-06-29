@@ -5,6 +5,7 @@
 import { ThreadFront } from "protocol/thread";
 import { bindActionCreators } from "redux";
 import type { UIStore } from "ui/actions";
+import { addSource } from "ui/reducers/sources";
 
 import actions from "../actions";
 import { initialBreakpointsState } from "../reducers/breakpoints";
@@ -32,8 +33,10 @@ type $FixTypeLater = any;
 
 async function setupDebugger() {
   const sourceInfos: $FixTypeLater[] = [];
-  // @ts-expect-error `sourceMapURL` doesn't exist?
-  await ThreadFront.findSources(({ sourceId, url, sourceMapURL }) =>
+  await ThreadFront.findSources(newSource => {
+    // @ts-expect-error `sourceMapURL` doesn't exist?
+    const { sourceId, url, sourceMapURL } = newSource;
+    store.dispatch(addSource(newSource));
     sourceInfos.push({
       type: "generated",
       data: prepareSourcePayload({
@@ -41,8 +44,8 @@ async function setupDebugger() {
         url,
         sourceMapURL,
       }),
-    })
-  );
+    });
+  });
   await store.dispatch(actions.newQueuedSources(sourceInfos));
   store.dispatch({ type: "SOURCES_LOADED" });
 }

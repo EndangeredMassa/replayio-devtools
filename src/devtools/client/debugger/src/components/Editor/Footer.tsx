@@ -5,6 +5,7 @@ import { localStorageGetItem, localStorageSetItem } from "ui/utils/storage";
 import { getSelectedSourceWithContent } from "../../selectors";
 
 import SourcemapToggle from "./SourcemapToggle";
+import NewSourcemapToggle from "./NewSourcemapToggle";
 import SourcemapVisualizerLink from "./SourcemapVisualizerLink";
 
 type CursorPosition = {
@@ -138,6 +139,7 @@ function SourceFooter() {
   return (
     <div className="source-footer">
       <SourcemapToggle />
+      <NewSourcemapToggle />
       <SourcemapVisualizerLink />
       <div className="source-footer-end">{cursorPositionUI}</div>
     </div>

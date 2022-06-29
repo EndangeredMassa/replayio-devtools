@@ -22,6 +22,7 @@ import { messages as messagesReducer } from "devtools/client/webconsole/reducers
 import { promise } from "ui/setup/redux/middleware/promise";
 import { context } from "ui/setup/redux/middleware/context";
 import protocolMessages from "ui/reducers/protocolMessages";
+import sources from "ui/reducers/sources";
 
 type UIStateReducers = {
   [key in keyof UIState]: Reducer<UIState[key]>;
@@ -42,6 +43,7 @@ let reducers = {
   layout: layoutReducer,
   messages: messagesReducer,
   protocolMessages: protocolMessages,
+  newSources: sources,
   tabs: tabsReducer,
 } as unknown as UIStateReducers;
 let extraThunkArgs = {} as ThunkExtraArgs;

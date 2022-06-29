@@ -384,6 +384,7 @@ class _ThreadFront {
       this.allSourcesWaiter.resolve();
     });
     client.Debugger.addNewSourceListener(source => {
+      console.log(source);
       let { sourceId, kind, url, generatedSourceIds, contentHash } = source;
       this.sources.set(sourceId, { contentHash, generatedSourceIds, kind, url });
       if (url) {

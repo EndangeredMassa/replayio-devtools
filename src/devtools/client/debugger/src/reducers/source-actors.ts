@@ -303,6 +303,8 @@ const queryThreadsBySourceObject = makeReduceAllQuery<
       if (!sourceThreads) {
         sourceThreads = [];
         acc[source] = sourceThreads;
+      } else {
+        throw "HEY";
       }
 
       sourceThreads.push(thread);
