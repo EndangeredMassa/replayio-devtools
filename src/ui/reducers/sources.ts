@@ -5,7 +5,7 @@ import {
   EntityState,
   PayloadAction,
 } from "@reduxjs/toolkit";
-import { newSource } from "@replayio/protocol";
+import { newSource, SourceKind } from "@replayio/protocol";
 import uniq from "lodash/uniq";
 import omit from "lodash/omit";
 import { getSelectedSourceId } from "devtools/client/debugger/src/selectors";
@@ -17,27 +17,28 @@ import { UIState } from "ui/state";
 // contentHash?: string;
 
 interface SourceDetails {
-  id: string;
   contentHash?: string;
-  generated: string[];
-  generatedFrom: string[];
+  id: string;
+  kind: SourceKind;
   url: string;
-  prettyPrinted?: string;
-  unprettyPrinted?: string;
 }
 const sourceDetailsAdapter = createEntityAdapter<SourceDetails>();
 const sourcesAdapter = createEntityAdapter<newSource>();
 
 export interface SourcesState {
   generated: { [key: string]: string[] | undefined };
-  generatedBy: { [key: string]: string[] | undefined };
+  generatedFrom: { [key: string]: string[] | undefined };
+  prettyPrintedFrom: { [key: string]: string | undefined };
+  prettyPrintedTo: { [key: string]: string | undefined };
   sourceDetails: EntityState<SourceDetails>;
   sources: EntityState<newSource>;
 }
 
 const initialState: SourcesState = {
   generated: {},
-  generatedBy: {},
+  generatedFrom: {},
+  prettyPrintedFrom: {},
+  prettyPrintedTo: {},
   sourceDetails: sourceDetailsAdapter.getInitialState(),
   sources: sourcesAdapter.getInitialState(),
 };
@@ -51,36 +52,34 @@ const sourcesSlice = createSlice({
       sourcesAdapter.addOne(state.sources, action.payload);
 
       if (action.payload.kind === "prettyPrinted") {
-        const generatedFrom = action.payload.generatedSourceIds![0]!;
-        const existing = state.sourceDetails.entities[generatedFrom];
+        const id = action.payload.sourceId;
+        // This is confusing because we turn things around when pretty printing
+        const prettyPrintedFrom = action.payload.generatedSourceIds![0]!;
+        // Unclear to me if we should consider pretty-printing to be a source transformation?
+        // state.generated[id] = uniq([...(state.generated[id] || []), prettyPrintedFrom]);
+        state.prettyPrintedFrom[id] = prettyPrintedFrom;
+        state.prettyPrintedTo[prettyPrintedFrom] = id;
+
         sourceDetailsAdapter.upsertOne(state.sourceDetails, {
           ...omit(action.payload, "sourceId", "generatedSourceIds"),
-          id: generatedFrom,
-          prettyPrinted: action.payload.sourceId,
+          id: prettyPrintedFrom,
           // This source was pretty printed, and (I think) therefore not
           // generated from eval, so we can safely assume that we have a url...
           // for now at least.
           url: action.payload.url!,
-          // Pretty-printing is always the last step. It never generates further
-          // sources, even if the unprettyPrinted version did.
-          generated: existing?.generated || [],
-          // We ignore the `generatedSourceIds` that we get back from the
-          // protocol for now, because pretty printed sources are just
-          // *different*.
-          generatedFrom: existing?.generatedFrom || [],
         });
       } else {
         const id = action.payload.sourceId;
         if (action.payload.generatedSourceIds) {
           // Link this to the sources it generated
-          state.generatedBy[id] = uniq([
-            ...(state.generatedBy[id] || []),
+          state.generated[id] = uniq([
+            ...(state.generated[id] || []),
             ...action.payload.generatedSourceIds,
           ]);
           // Link each source it generated back to this
           action.payload.generatedSourceIds.map(generatedSourceId => {
-            state.generated[generatedSourceId] = uniq([
-              ...(state.generated[generatedSourceId] || []),
+            state.generatedFrom[generatedSourceId] = uniq([
+              ...(state.generatedFrom[generatedSourceId] || []),
               id,
             ]);
           });
@@ -88,9 +87,6 @@ const sourcesSlice = createSlice({
         sourceDetailsAdapter.upsertOne(state.sourceDetails, {
           ...omit(action.payload, "sourceId", "generatedSourceIds"),
           id: action.payload.sourceId,
-          // Do we need to go get this?
-          generatedFrom: [],
-          generated: action.payload.generatedSourceIds || [],
           // I don't have a good excuse as to why I am saying this exists even
           // though it is optional. Other than - we'll get to that later.
           url: action.payload.url!,
@@ -105,11 +101,28 @@ const sourceDetailsSelectors = sourceDetailsAdapter.getSelectors();
 export const getSelectedSourceDetails = createSelector(
   getSelectedSourceId,
   (state: UIState) => state.newSources.sourceDetails,
-  (selectedSourceId, sourceDetails) => {
+  (state: UIState) => state.newSources.generated,
+  (state: UIState) => state.newSources.generatedFrom,
+  (state: UIState) => state.newSources.prettyPrintedFrom,
+  (state: UIState) => state.newSources.prettyPrintedTo,
+  (
+    selectedSourceId,
+    sourceDetails,
+    generated,
+    generatedFrom,
+    prettyPrintedFrom,
+    prettyPrintedTo
+  ) => {
     if (!selectedSourceId) {
       return null;
     }
-    return sourceDetailsSelectors.selectById(sourceDetails, selectedSourceId);
+    return {
+      ...sourceDetailsSelectors.selectById(sourceDetails, selectedSourceId),
+      generated: generated[selectedSourceId] || [],
+      generatedFrom: generatedFrom[selectedSourceId] || [],
+      prettyPrintedFrom: prettyPrintedFrom[selectedSourceId],
+      prettyPrintedTo: prettyPrintedTo[selectedSourceId],
+    };
   }
 );
 
