@@ -40,7 +40,7 @@ const NewSourcemapToggle = () => {
           </Warning>
         ) : null}
       </div>
-      <div className="absolute inset-x-1/2 -top-8 flex w-fit -translate-x-1/2 transform">
+      <div className="margin-auto absolute inset-x-0 -top-8 flex transform justify-center">
         {selectedSourceDetails?.generated.length ? (
           <Notice>
             This source generated {selectedSourceDetails.generated.length} other source(s)
