@@ -116,8 +116,45 @@ export const getSelectedSourceDetails = createSelector(
     if (!selectedSourceId) {
       return null;
     }
+    const beforePrettyPrinting = prettyPrintedFrom[selectedSourceId];
+    const details = sourceDetailsSelectors.selectById(
+      sourceDetails,
+      beforePrettyPrinting || selectedSourceId
+    );
+
+    if (!details) {
+      return null;
+    }
+
+    let canonicalSource;
+    if (beforePrettyPrinting !== undefined) {
+      // For the purposes of demonstration, let's say that prettyPrinted files
+      // are the canonical ones already. I have not yet confirmed if this is
+      // reliably the case, and I suspect that it is not. In fact, I suspect the
+      // logic is:
+      // - Go find the canonical source for the non-pretty-printed version, and
+      //   then see if that canonical source also has a pretty-printed version.
+      canonicalSource = null;
+    } else if (details.kind === "html") {
+      // HTML files are always the original, canonical source AFAIK
+      canonicalSource = null;
+    } else if (details.kind === "inlineScript") {
+      // HTML files are the canonical source for inline scripts
+      canonicalSource = generatedFrom[selectedSourceId]![0] || null;
+    } else if (details.kind === "scriptSource") {
+      // This might be a file referenced directly, but if there's a pretty-printed version, we would prefer that.
+      canonicalSource = prettyPrintedTo[selectedSourceId] || null;
+    } else if (details.kind === "sourceMapped") {
+      // This might be a sourceMapped file, but we still want the PP version if possible
+      canonicalSource = prettyPrintedTo[selectedSourceId] || null;
+    } else if (details.kind === "other") {
+      // I don't know what to do here yet, probably generatedFrom?
+      canonicalSource = generatedFrom[selectedSourceId]![0] || null;
+    }
+
     return {
-      ...sourceDetailsSelectors.selectById(sourceDetails, selectedSourceId),
+      ...details,
+      canonicalSource,
       generated: generated[selectedSourceId] || [],
       generatedFrom: generatedFrom[selectedSourceId] || [],
       prettyPrintedFrom: prettyPrintedFrom[selectedSourceId],
