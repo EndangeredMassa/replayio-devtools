@@ -23,7 +23,106 @@ interface SourceDetails {
   url: string;
 }
 const sourceDetailsAdapter = createEntityAdapter<SourceDetails>();
-const sourcesAdapter = createEntityAdapter<newSource>();
+const sourcesAdapter = createEntityAdapter<newSource>({ selectId: source => source.sourceId });
+
+interface FullSourceDetails {
+  canonicalId: string;
+  contentHash: string;
+  correspondingSourceIds: string[];
+  generated: string[];
+  generatedFrom: string[];
+  id: string;
+  kind: SourceKind;
+  prettyPrinted: string | undefined;
+  prettyPrintedFrom: string | undefined;
+  url: string;
+}
+
+export const keyForSource = (source: newSource): string => {
+  return `${source.url!}:${source.contentHash}`;
+};
+
+export const newSourcesToCompleteSourceDetails = (
+  newSources: newSource[]
+): { [key: string]: FullSourceDetails | undefined } => {
+  // We should process these first. Generally speaking, the other resources we
+  // have will be related to a scriptSource *somehow*. There are exceptions. For
+  // instance, the pretty-printed version of a sourceMapped source will not have
+  // a direct link to a scriptSource (though it must have a transitive link
+  // through the sourceMapped source)
+  const scriptSources = newSources.filter(source => source.kind === "scriptSource");
+
+  const returnValue: { [key: string]: FullSourceDetails | undefined } = {};
+
+  const correspondingSourcesMap: { [key: string]: string[] | undefined } = {};
+
+  scriptSources.map(scriptSource => {
+    returnValue[scriptSource.sourceId] = {
+      canonicalId: scriptSource.sourceId,
+      // scriptSources always have content hashes
+      contentHash: scriptSource.contentHash!,
+      correspondingSourceIds: [],
+      generated: scriptSource.generatedSourceIds || [],
+      generatedFrom: [],
+      id: scriptSource.sourceId,
+      kind: scriptSource.kind,
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      // scriptSources always have URLs
+      url: scriptSource.url!,
+    };
+    const key = keyForSource(scriptSource);
+    if (correspondingSourcesMap[key]) {
+      correspondingSourcesMap[key] = [];
+    }
+    correspondingSourcesMap[key]!.push(scriptSource.sourceId);
+  });
+
+  // Next I think we handle html.
+  const htmlSources = newSources.filter(source => source.kind === "scriptSource");
+  htmlSources.map(source => {
+    returnValue[source.sourceId] = {
+      canonicalId: source.sourceId,
+      // html sources always have content hashes
+      contentHash: source.contentHash!,
+      correspondingSourceIds: [],
+      generated: source.generatedSourceIds || [],
+      generatedFrom: [],
+      id: source.sourceId,
+      kind: source.kind,
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      // html sources always have URLs
+      url: source.url!,
+    };
+  });
+
+  const inlineScripts = newSources.filter(source => source.kind === "inlineScript");
+  inlineScripts.map(source => {
+    returnValue[source.sourceId] = {
+      canonicalId: source.sourceId,
+      // html sources always have content hashes
+      contentHash: source.contentHash!,
+      correspondingSourceIds: [],
+      generated: source.generatedSourceIds || [],
+      generatedFrom: [],
+      id: source.sourceId,
+      kind: source.kind,
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      // html sources always have URLs
+      url: source.url!,
+    };
+  });
+
+  // OMG i can do it
+  // if we see an evaled script or an excerpted script we can mark it as
+  // transitive and call the protocol to get its mapped location for first and
+  // last location and BOOM!
+  // Oh, ya know what, you only need *one* location because the source will
+  // always be the same!
+  return returnValue;
+};
 
 export interface SourcesState {
   generated: { [key: string]: string[] | undefined };
