@@ -113,18 +113,15 @@ export const newSourcesToCompleteSourceDetails = (
 
   const sourceMapped = byKind["sourceMapped"] || [];
   sourceMapped.map(source => {
-    returnValue[source.sourceId] = {
+    returnValue[source.sourceId] = fullSourceDetails({
       canonicalId: source.sourceId,
-      contentHash: source.contentHash!,
-      correspondingSourceIds: [],
+      contentHash: source.contentHash,
       generated: source.generatedSourceIds || [],
       generatedFrom: generatedFromMap[source.sourceId] || [],
       id: source.sourceId,
       kind: source.kind,
-      prettyPrinted: undefined,
-      prettyPrintedFrom: undefined,
       url: source.url!,
-    };
+    });
 
     // Link generated sources
     source.generatedSourceIds?.map(generatedId => {
@@ -168,6 +165,7 @@ export const newSourcesToCompleteSourceDetails = (
       kind: source.kind,
       prettyPrinted: undefined,
       prettyPrintedFrom: source.generatedSourceIds![0]!,
+      generatedFrom: generatedFromMap[source.generatedSourceIds![0]] || [],
       url: source.url!,
     });
 

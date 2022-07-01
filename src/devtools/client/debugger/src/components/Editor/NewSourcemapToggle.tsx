@@ -23,10 +23,17 @@ const NewSourcemapToggle = () => {
 
   console.log({ selectedSourceDetails });
 
+  const bundled = selectedSourceDetails.generatedFrom.length > 1;
+
   return (
     <>
       <div className="absolute inset-x-1/2 -top-24 flex w-fit -translate-x-1/2 transform">
-        {selectedSourceDetails.canonicalId !== selectedSourceDetails.id ? (
+        {bundled && (
+          <Warning>
+            This file is a bundle created from {selectedSourceDetails.generatedFrom.length} files.
+          </Warning>
+        )}
+        {!bundled && selectedSourceDetails.canonicalId !== selectedSourceDetails.id ? (
           <Warning>
             This is not the canonical form of this source; it might be harder to work with.&nbsp;
             <span
@@ -45,7 +52,7 @@ const NewSourcemapToggle = () => {
             This source generated {selectedSourceDetails.generated.length} other source(s)
           </Notice>
         ) : null}
-        {selectedSourceDetails?.generatedFrom.length ? (
+        {!bundled && selectedSourceDetails?.generatedFrom.length ? (
           <Notice>
             This source was generated from {selectedSourceDetails.generatedFrom.length} other
             source(s)
