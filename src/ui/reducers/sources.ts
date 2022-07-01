@@ -55,6 +55,7 @@ export const newSourcesToCompleteSourceDetails = (
   const returnValue: { [key: string]: FullSourceDetails | undefined } = {};
 
   const correspondingSourcesMap: { [key: string]: string[] | undefined } = {};
+  const generatedFromMap: { [key: string]: string[] | undefined } = {};
 
   scriptSources.map(scriptSource => {
     returnValue[scriptSource.sourceId] = {
@@ -71,8 +72,18 @@ export const newSourcesToCompleteSourceDetails = (
       // scriptSources always have URLs
       url: scriptSource.url!,
     };
+
+    // Backlink generated sources
+    scriptSource.generatedSourceIds?.map(generatedId => {
+      if (!generatedFromMap[generatedId]) {
+        generatedFromMap[generatedId] = [];
+      }
+      generatedFromMap[generatedId]!.push(scriptSource.sourceId);
+    });
+
+    // Check for corresponding sources
     const key = keyForSource(scriptSource);
-    if (correspondingSourcesMap[key]) {
+    if (!correspondingSourcesMap[key]) {
       correspondingSourcesMap[key] = [];
     }
     correspondingSourcesMap[key]!.push(scriptSource.sourceId);
@@ -87,7 +98,8 @@ export const newSourcesToCompleteSourceDetails = (
       contentHash: source.contentHash!,
       correspondingSourceIds: [],
       generated: source.generatedSourceIds || [],
-      generatedFrom: [],
+      // How do we figure out what to put here?
+      generatedFrom: generatedFromMap[source.sourceId] || [],
       id: source.sourceId,
       kind: source.kind,
       prettyPrinted: undefined,
@@ -95,6 +107,21 @@ export const newSourcesToCompleteSourceDetails = (
       // html sources always have URLs
       url: source.url!,
     };
+
+    // Backlink generated sources
+    source.generatedSourceIds?.map(generatedId => {
+      if (!generatedFromMap[generatedId]) {
+        generatedFromMap[generatedId] = [];
+      }
+      generatedFromMap[generatedId]!.push(source.sourceId);
+    });
+
+    // Check for corresponding sources
+    const key = keyForSource(source);
+    if (!correspondingSourcesMap[key]) {
+      correspondingSourcesMap[key] = [];
+    }
+    correspondingSourcesMap[key]!.push(source.sourceId);
   });
 
   const inlineScripts = newSources.filter(source => source.kind === "inlineScript");
@@ -105,7 +132,7 @@ export const newSourcesToCompleteSourceDetails = (
       contentHash: source.contentHash!,
       correspondingSourceIds: [],
       generated: source.generatedSourceIds || [],
-      generatedFrom: [],
+      generatedFrom: generatedFromMap[source.sourceId] || [],
       id: source.sourceId,
       kind: source.kind,
       prettyPrinted: undefined,
@@ -113,6 +140,112 @@ export const newSourcesToCompleteSourceDetails = (
       // html sources always have URLs
       url: source.url!,
     };
+    source.generatedSourceIds?.map(generatedId => {
+      returnValue[generatedId]!.generatedFrom.push(source.sourceId);
+    });
+  });
+
+  const sourceMapped = newSources.filter(source => source.kind === "sourceMapped");
+  sourceMapped.map(source => {
+    returnValue[source.sourceId] = {
+      canonicalId: source.sourceId,
+      // html sources always have content hashes
+      contentHash: source.contentHash!,
+      correspondingSourceIds: [],
+      generated: source.generatedSourceIds || [],
+      generatedFrom: generatedFromMap[source.sourceId] || [],
+      id: source.sourceId,
+      kind: source.kind,
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      // html sources always have URLs
+      url: source.url!,
+    };
+
+    // Link generated sources
+    source.generatedSourceIds?.map(generatedId => {
+      returnValue[generatedId]!.generatedFrom.push(source.sourceId);
+    });
+
+    // Backlink generated sources
+    source.generatedSourceIds?.map(generatedId => {
+      if (!generatedFromMap[generatedId]) {
+        generatedFromMap[generatedId] = [];
+      }
+      generatedFromMap[generatedId]!.push(source.sourceId);
+    });
+
+    // Check for corresponding sources
+    const key = keyForSource(source);
+    if (!correspondingSourcesMap[key]) {
+      correspondingSourcesMap[key] = [];
+    }
+    correspondingSourcesMap[key]!.push(source.sourceId);
+  });
+
+  const otherSources = newSources.filter(source => source.kind === "other");
+  otherSources.map(source => {
+    returnValue[source.sourceId] = {
+      canonicalId: source.sourceId,
+      // html sources always have content hashes
+      contentHash: source.contentHash!,
+      correspondingSourceIds: [],
+      generated: source.generatedSourceIds || [],
+      generatedFrom: generatedFromMap[source.sourceId] || [],
+      id: source.sourceId,
+      kind: source.kind,
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      // html sources always have URLs
+      url: source.url!,
+    };
+
+    // Link generated sources
+    source.generatedSourceIds?.map(generatedId => {
+      returnValue[generatedId]!.generatedFrom.push(source.sourceId);
+    });
+
+    // Backlink generated sources
+    source.generatedSourceIds?.map(generatedId => {
+      if (!generatedFromMap[generatedId]) {
+        generatedFromMap[generatedId] = [];
+      }
+      generatedFromMap[generatedId]!.push(source.sourceId);
+    });
+
+    // Check for corresponding sources
+    const key = keyForSource(source);
+    if (!correspondingSourcesMap[key]) {
+      correspondingSourcesMap[key] = [];
+    }
+    correspondingSourcesMap[key]!.push(source.sourceId);
+  });
+
+  const prettyPrinted = newSources.filter(source => source.kind === "prettyPrinted");
+  prettyPrinted.map(source => {
+    returnValue[source.sourceId] = {
+      canonicalId: source.sourceId,
+      // html sources always have content hashes
+      contentHash: source.contentHash!,
+      correspondingSourceIds: [],
+      generated: [],
+      generatedFrom: [],
+      id: source.sourceId,
+      kind: source.kind,
+      prettyPrinted: undefined,
+      prettyPrintedFrom: source.generatedSourceIds![0]!,
+      // html sources always have URLs
+      url: source.url!,
+    };
+
+    returnValue[source.generatedSourceIds![0]!]!.prettyPrinted = source.sourceId;
+
+    // Check for corresponding sources
+    const key = keyForSource(source);
+    if (!correspondingSourcesMap[key]) {
+      correspondingSourcesMap[key] = [];
+    }
+    correspondingSourcesMap[key]!.push(source.sourceId);
   });
 
   // OMG i can do it
