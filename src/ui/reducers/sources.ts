@@ -10,6 +10,7 @@ import uniq from "lodash/uniq";
 import omit from "lodash/omit";
 import { getSelectedSourceId } from "devtools/client/debugger/src/selectors";
 import { UIState } from "ui/state";
+import { requiresWindow } from "ssr";
 // sourceId: SourceId;
 // kind: SourceKind;
 // url?: string;
@@ -57,40 +58,38 @@ export const newSourcesToCompleteSourceDetails = (
   const correspondingSourcesMap: { [key: string]: string[] | undefined } = {};
   const generatedFromMap: { [key: string]: string[] | undefined } = {};
 
-  scriptSources.map(scriptSource => {
-    returnValue[scriptSource.sourceId] = {
-      canonicalId: scriptSource.sourceId,
+  // SCRIPT SOURCES
+  scriptSources.map(source => {
+    returnValue[source.sourceId] = {
+      canonicalId: source.sourceId,
       // scriptSources always have content hashes
-      contentHash: scriptSource.contentHash!,
+      contentHash: source.contentHash!,
       correspondingSourceIds: [],
-      generated: scriptSource.generatedSourceIds || [],
+      generated: source.generatedSourceIds || [],
       generatedFrom: [],
-      id: scriptSource.sourceId,
-      kind: scriptSource.kind,
+      id: source.sourceId,
+      kind: source.kind,
       prettyPrinted: undefined,
       prettyPrintedFrom: undefined,
       // scriptSources always have URLs
-      url: scriptSource.url!,
+      url: source.url!,
     };
 
     // Backlink generated sources
-    scriptSource.generatedSourceIds?.map(generatedId => {
-      if (!generatedFromMap[generatedId]) {
-        generatedFromMap[generatedId] = [];
-      }
-      generatedFromMap[generatedId]!.push(scriptSource.sourceId);
+    source.generatedSourceIds?.map(generatedId => {
+      generatedFromMap[generatedId] = [...(generatedFromMap[generatedId] || []), source.sourceId];
     });
 
     // Check for corresponding sources
-    const key = keyForSource(scriptSource);
+    const key = keyForSource(source);
     if (!correspondingSourcesMap[key]) {
       correspondingSourcesMap[key] = [];
     }
-    correspondingSourcesMap[key]!.push(scriptSource.sourceId);
+    correspondingSourcesMap[key] = [...(correspondingSourcesMap[key] || []), source.sourceId];
   });
 
   // Next I think we handle html.
-  const htmlSources = newSources.filter(source => source.kind === "scriptSource");
+  const htmlSources = newSources.filter(source => source.kind === "html");
   htmlSources.map(source => {
     returnValue[source.sourceId] = {
       canonicalId: source.sourceId,
@@ -110,10 +109,7 @@ export const newSourcesToCompleteSourceDetails = (
 
     // Backlink generated sources
     source.generatedSourceIds?.map(generatedId => {
-      if (!generatedFromMap[generatedId]) {
-        generatedFromMap[generatedId] = [];
-      }
-      generatedFromMap[generatedId]!.push(source.sourceId);
+      generatedFromMap[generatedId] = [...(generatedFromMap[generatedId] || []), source.sourceId];
     });
 
     // Check for corresponding sources
@@ -121,7 +117,7 @@ export const newSourcesToCompleteSourceDetails = (
     if (!correspondingSourcesMap[key]) {
       correspondingSourcesMap[key] = [];
     }
-    correspondingSourcesMap[key]!.push(source.sourceId);
+    correspondingSourcesMap[key] = [...(correspondingSourcesMap[key] || []), source.sourceId];
   });
 
   const inlineScripts = newSources.filter(source => source.kind === "inlineScript");
@@ -140,9 +136,25 @@ export const newSourcesToCompleteSourceDetails = (
       // html sources always have URLs
       url: source.url!,
     };
+
     source.generatedSourceIds?.map(generatedId => {
-      returnValue[generatedId]!.generatedFrom.push(source.sourceId);
+      returnValue[generatedId]!.generatedFrom = [
+        ...returnValue[generatedId]!.generatedFrom,
+        source.sourceId,
+      ];
     });
+
+    // Backlink generated sources
+    source.generatedSourceIds?.map(generatedId => {
+      generatedFromMap[generatedId] = [...(generatedFromMap[generatedId] || []), source.sourceId];
+    });
+
+    // Check for corresponding sources
+    const key = keyForSource(source);
+    if (!correspondingSourcesMap[key]) {
+      correspondingSourcesMap[key] = [];
+    }
+    correspondingSourcesMap[key] = [...(correspondingSourcesMap[key] || []), source.sourceId];
   });
 
   const sourceMapped = newSources.filter(source => source.kind === "sourceMapped");
@@ -165,6 +177,7 @@ export const newSourcesToCompleteSourceDetails = (
     // Link generated sources
     source.generatedSourceIds?.map(generatedId => {
       returnValue[generatedId]!.generatedFrom.push(source.sourceId);
+      returnValue[generatedId]!.canonicalId = source.sourceId;
     });
 
     // Backlink generated sources
@@ -224,7 +237,7 @@ export const newSourcesToCompleteSourceDetails = (
   const prettyPrinted = newSources.filter(source => source.kind === "prettyPrinted");
   prettyPrinted.map(source => {
     returnValue[source.sourceId] = {
-      canonicalId: source.sourceId,
+      canonicalId: source.generatedSourceIds![0],
       // html sources always have content hashes
       contentHash: source.contentHash!,
       correspondingSourceIds: [],
@@ -256,6 +269,10 @@ export const newSourcesToCompleteSourceDetails = (
   // always be the same!
   return returnValue;
 };
+
+requiresWindow(() => {
+  (window as any).newSourcesToCompleteSourceDetails = newSourcesToCompleteSourceDetails;
+});
 
 export interface SourcesState {
   generated: { [key: string]: string[] | undefined };
