@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { getSelectedSourceDetails } from "ui/reducers/sources";
 import { useAppDispatch, useAppSelector } from "ui/setup/hooks";
 import { selectSource } from "../../actions/sources";
-import { getContext, getSelectedSourceId } from "../../selectors";
+import { getContext } from "../../selectors";
 
 const Notice = ({ children }: { children: ReactNode }) => {
   return <div className="rounded bg-neutral-800 p-2 text-white shadow">{children}</div>;
@@ -14,25 +14,24 @@ const Warning = ({ children }: { children: ReactNode }) => {
 
 const NewSourcemapToggle = () => {
   const selectedSourceDetails = useAppSelector(getSelectedSourceDetails);
-  const selectedSourceId = useAppSelector(getSelectedSourceId);
   const cx = useAppSelector(getContext);
   const dispatch = useAppDispatch();
 
-  if (selectedSourceDetails === null) {
+  if (!selectedSourceDetails) {
     return null;
   }
 
-  console.log(selectedSourceDetails);
+  console.log({ selectedSourceDetails });
 
   return (
     <>
       <div className="absolute inset-x-1/2 -top-24 flex w-fit -translate-x-1/2 transform">
-        {selectedSourceDetails?.canonicalSource ? (
+        {selectedSourceDetails.canonicalId !== selectedSourceDetails.id ? (
           <Warning>
             This is not the canonical form of this source; it might be harder to work with.&nbsp;
             <span
               className="cursor-pointer underline"
-              onClick={() => dispatch(selectSource(cx, selectedSourceDetails.canonicalSource!))}
+              onClick={() => dispatch(selectSource(cx, selectedSourceDetails?.canonicalId!))}
             >
               Switch to the canonical version
             </span>
@@ -63,11 +62,11 @@ const NewSourcemapToggle = () => {
             </span>
           </Notice>
         ) : null}
-        {selectedSourceDetails?.prettyPrintedTo ? (
+        {selectedSourceDetails?.prettyPrinted ? (
           <Notice>
             <span
               className="cursor-pointer underline"
-              onClick={() => dispatch(selectSource(cx, selectedSourceDetails.prettyPrintedTo!))}
+              onClick={() => dispatch(selectSource(cx, selectedSourceDetails.prettyPrinted!))}
             >
               Switch to the pretty-printed version of this source
             </span>

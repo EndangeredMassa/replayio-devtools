@@ -5,7 +5,7 @@
 import { ThreadFront } from "protocol/thread";
 import { bindActionCreators } from "redux";
 import type { UIStore } from "ui/actions";
-import { addSource } from "ui/reducers/sources";
+import { addSource, allSourcesReceived } from "ui/reducers/sources";
 
 import actions from "../actions";
 import { initialBreakpointsState } from "../reducers/breakpoints";
@@ -48,6 +48,7 @@ async function setupDebugger() {
   });
   await store.dispatch(actions.newQueuedSources(sourceInfos));
   store.dispatch({ type: "SOURCES_LOADED" });
+  store.dispatch(allSourcesReceived());
 }
 
 export function bootstrap(_store: UIStore) {

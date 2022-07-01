@@ -1,26 +1,15 @@
+import { EntityId } from "@reduxjs/toolkit";
 import { newSource, SourceKind } from "@replayio/protocol";
 import groupBy from "lodash/groupBy";
-
-interface FullSourceDetails {
-  canonicalId: string;
-  contentHash: string | undefined;
-  correspondingSourceIds: string[];
-  generated: string[];
-  generatedFrom: string[];
-  id: string;
-  kind: SourceKind;
-  prettyPrinted: string | undefined;
-  prettyPrintedFrom: string | undefined;
-  url: string;
-}
+import { SourceDetails } from "ui/reducers/sources";
 
 const fullSourceDetails = (
-  attributes: Partial<FullSourceDetails> & {
+  attributes: Partial<SourceDetails> & {
     id: string;
     kind: SourceKind;
     url: string;
   }
-): FullSourceDetails => {
+): SourceDetails => {
   return {
     canonicalId: attributes.id,
     contentHash: undefined,
@@ -39,7 +28,7 @@ export const keyForSource = (source: newSource): string => {
 
 export const newSourcesToCompleteSourceDetails = (
   newSources: newSource[]
-): { [key: string]: FullSourceDetails | undefined } => {
+): Record<EntityId, SourceDetails> => {
   // Sources are processed by kind. So first we go through the whole list once
   // just to group things properly.
   const byKind = groupBy(newSources, source => source.kind);
@@ -51,7 +40,7 @@ export const newSourcesToCompleteSourceDetails = (
   // sourceMapped source)
   const scriptSources = byKind["scriptSource"] || [];
 
-  const returnValue: { [key: string]: FullSourceDetails | undefined } = {};
+  const returnValue: { [key: string]: SourceDetails | undefined } = {};
 
   const generatedFromMap: { [key: string]: string[] | undefined } = {};
   // Backlink generated sources

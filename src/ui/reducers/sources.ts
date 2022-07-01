@@ -8,30 +8,31 @@ import {
 import { newSource, SourceKind } from "@replayio/protocol";
 import { getSelectedSourceId } from "devtools/client/debugger/src/selectors";
 import { UIState } from "ui/state";
+import { newSourcesToCompleteSourceDetails } from "ui/utils/sources";
 
-interface SourceDetails {
-  contentHash?: string;
+export interface SourceDetails {
+  canonicalId: string;
+  contentHash: string | undefined;
+  correspondingSourceIds: string[];
+  generated: string[];
+  generatedFrom: string[];
   id: string;
   kind: SourceKind;
+  prettyPrinted: string | undefined;
+  prettyPrintedFrom: string | undefined;
   url: string;
 }
+
 const sourceDetailsAdapter = createEntityAdapter<SourceDetails>();
 const sourcesAdapter = createEntityAdapter<newSource>({ selectId: source => source.sourceId });
+const sourceSelectors = sourcesAdapter.getSelectors();
 
 export interface SourcesState {
-  generated: { [key: string]: string[] | undefined };
-  generatedFrom: { [key: string]: string[] | undefined };
-  prettyPrintedFrom: { [key: string]: string | undefined };
-  prettyPrintedTo: { [key: string]: string | undefined };
   sourceDetails: EntityState<SourceDetails>;
   sources: EntityState<newSource>;
 }
 
 const initialState: SourcesState = {
-  generated: {},
-  generatedFrom: {},
-  prettyPrintedFrom: {},
-  prettyPrintedTo: {},
   sourceDetails: sourceDetailsAdapter.getInitialState(),
   sources: sourcesAdapter.getInitialState(),
 };
@@ -44,6 +45,12 @@ const sourcesSlice = createSlice({
       // Store the raw protocol information. Once we have recieved all sources
       // we will run over this and build it into the shape we want.
       sourcesAdapter.addOne(state.sources, action.payload);
+    },
+    allSourcesReceived: state => {
+      sourceDetailsAdapter.addMany(
+        state.sourceDetails,
+        newSourcesToCompleteSourceDetails(sourceSelectors.selectAll(state.sources))
+      );
     },
   },
 });
@@ -60,5 +67,5 @@ export const getSelectedSourceDetails = createSelector(
   }
 );
 
-export const { addSource } = sourcesSlice.actions;
+export const { addSource, allSourcesReceived } = sourcesSlice.actions;
 export default sourcesSlice.reducer;
