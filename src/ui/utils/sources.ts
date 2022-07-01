@@ -40,7 +40,7 @@ export const newSourcesToCompleteSourceDetails = (
   // sourceMapped source)
   const scriptSources = byKind["scriptSource"] || [];
 
-  const returnValue: { [key: string]: SourceDetails | undefined } = {};
+  const returnValue: Record<EntityId, SourceDetails> = {};
 
   const generatedFromMap: { [key: string]: string[] | undefined } = {};
   // Backlink generated sources
@@ -93,37 +93,22 @@ export const newSourcesToCompleteSourceDetails = (
 
   const inlineScripts = byKind["inlineScript"] || [];
   inlineScripts.map(source => {
-    returnValue[source.sourceId] = {
+    returnValue[source.sourceId] = fullSourceDetails({
       canonicalId: generatedFromMap[source.sourceId]![0],
-      contentHash: source.contentHash!,
-      correspondingSourceIds: [],
+      contentHash: source.contentHash,
       generated: source.generatedSourceIds || [],
       generatedFrom: generatedFromMap[source.sourceId] || [],
       id: source.sourceId,
       kind: source.kind,
-      prettyPrinted: undefined,
-      prettyPrintedFrom: undefined,
       url: source.url!,
-    };
-
-    source.generatedSourceIds?.map(generatedId => {
-      returnValue[generatedId]!.generatedFrom = [
-        ...returnValue[generatedId]!.generatedFrom,
-        source.sourceId,
-      ];
     });
 
-    // Backlink generated sources
     source.generatedSourceIds?.map(generatedId => {
-      generatedFromMap[generatedId] = [...(generatedFromMap[generatedId] || []), source.sourceId];
+      returnValue[generatedId]!.generatedFrom.push(source.sourceId);
     });
 
-    // Check for corresponding sources
-    const key = keyForSource(source);
-    if (!correspondingSourcesMap[key]) {
-      correspondingSourcesMap[key] = [];
-    }
-    correspondingSourcesMap[key] = [...(correspondingSourcesMap[key] || []), source.sourceId];
+    backLinkGeneratedSource(source);
+    addToCorrespondingSources(source);
   });
 
   const sourceMapped = byKind["sourceMapped"] || [];
@@ -201,6 +186,5 @@ export const newSourcesToCompleteSourceDetails = (
   // always be the same!
   // Ah, drat, for some reason eval'ed sources in particular are not linked!
   // That is not a huge problem for this, but eventually it *could* be.
-
   return returnValue;
 };
