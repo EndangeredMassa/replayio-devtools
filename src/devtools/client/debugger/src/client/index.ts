@@ -45,11 +45,14 @@ async function setupDebugger() {
       }),
     });
 
+    // Can also probably just shove these into an array right here and dispatch
+    // them all at the end.
     store.dispatch(addSource(newSource));
   });
   await store.dispatch(actions.newQueuedSources(sourceInfos));
   store.dispatch({ type: "SOURCES_LOADED" });
 
+  // This fires off the coercing of sources into a more workable form
   store.dispatch(allSourcesReceived());
 }
 
