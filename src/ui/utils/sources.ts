@@ -29,6 +29,15 @@ export const keyForSource = (source: newSource): string => {
 export const newSourcesToCompleteSourceDetails = (
   newSources: newSource[]
 ): Record<EntityId, SourceDetails> => {
+  const returnValue: Record<EntityId, SourceDetails> = {};
+
+  let log = false;
+  const maybeLog = (args: any) => {
+    if (log) {
+      console.log(args);
+    }
+  };
+
   // Sources are processed by kind. So first we go through the whole list once
   // just to group things properly.
   const byKind = groupBy(newSources, source => source.kind);
@@ -40,8 +49,8 @@ export const newSourcesToCompleteSourceDetails = (
   // sourceMapped source)
   const scriptSources = byKind["scriptSource"] || [];
 
-  const returnValue: Record<EntityId, SourceDetails> = {};
-
+  // This is a backlink map, so that we don't have to search through the
+  // returnValue list ever.
   const generatedFromMap: Record<string, string[] | undefined> = {};
   const backLinkGeneratedSource = (source: newSource) => {
     source.generatedSourceIds?.map(generatedId => {
@@ -52,16 +61,16 @@ export const newSourcesToCompleteSourceDetails = (
     });
   };
 
-  // Rather than searching by the canonicalID, we can use this map to do a
-  // reverse lookup.
+  // Similar to generatedFromMap, rather than searching by the canonicalID, we
+  // can use this map to do a reverse lookup.
   const canonicalSourcesMap: Record<string, string[] | undefined> = {};
   const addCanonicalLink = (replace: string, replaceWith: string) => {
-    const existingCanonical = canonicalSourcesMap[replace] || [];
+    const existingCanonical = [...(canonicalSourcesMap[replace] || []), replaceWith];
     existingCanonical.forEach(sourceId => {
       returnValue[sourceId]!.canonicalId = replaceWith;
     });
-    console.log(`Replace ${replace}(${existingCanonical}) -> ${replaceWith}`);
-    canonicalSourcesMap[replaceWith] = [...existingCanonical, replaceWith];
+    maybeLog(`Replace ${replace}(${existingCanonical}) -> ${replaceWith}`);
+    canonicalSourcesMap[replaceWith] = existingCanonical;
     if (replace !== replaceWith) {
       delete canonicalSourcesMap[replace];
     }
@@ -75,7 +84,7 @@ export const newSourcesToCompleteSourceDetails = (
       candidate = returnValue[candidate].canonicalId;
     }
 
-    console.log(`Lookup ${sourceId} => ${candidate}`);
+    maybeLog(`Lookup ${sourceId} => ${candidate}`);
     return candidate;
   };
 
@@ -102,6 +111,12 @@ export const newSourcesToCompleteSourceDetails = (
     canonicalSourcesMap[source.sourceId] = [source.sourceId];
   });
 
+  const obj = (o: object) => {
+    return JSON.stringify(o, null, 2);
+  };
+
+  maybeLog(`after scriptSources: ${obj(returnValue)}, ${obj(canonicalSourcesMap)}`);
+
   const htmlSources = byKind["html"] || [];
   htmlSources.map(source => {
     returnValue[source.sourceId] = fullSourceDetails({
@@ -117,6 +132,8 @@ export const newSourcesToCompleteSourceDetails = (
     addToCorrespondingSources(source);
     addCanonicalLink(source.sourceId, source.sourceId);
   });
+
+  maybeLog(`after html: ${obj(returnValue)}, ${obj(canonicalSourcesMap)}`);
 
   const inlineScripts = byKind["inlineScript"] || [];
   inlineScripts.map(source => {
@@ -139,6 +156,8 @@ export const newSourcesToCompleteSourceDetails = (
     addToCorrespondingSources(source);
     addCanonicalLink(source.sourceId, canonicalId);
   });
+
+  maybeLog(`after inlineScripts: ${obj(returnValue)}, ${obj(canonicalSourcesMap)}`);
 
   const sourceMapped = byKind["sourceMapped"] || [];
   sourceMapped.map(source => {
@@ -166,6 +185,8 @@ export const newSourcesToCompleteSourceDetails = (
     addToCorrespondingSources(source);
   });
 
+  maybeLog(`after sourceMapped: ${obj(returnValue)}, ${obj(canonicalSourcesMap)}`);
+
   const otherSources = byKind["other"] || [];
   otherSources.map(source => {
     returnValue[source.sourceId] = fullSourceDetails({
@@ -185,6 +206,9 @@ export const newSourcesToCompleteSourceDetails = (
     addToCorrespondingSources(source);
   });
 
+  log = true;
+  maybeLog(`after other: ${obj(returnValue)}, ${obj(canonicalSourcesMap)}`);
+
   const prettyPrinted = byKind["prettyPrinted"] || [];
   prettyPrinted.map(source => {
     // We handle pretty-printed (pp) files and their generated links a little
@@ -192,7 +216,8 @@ export const newSourcesToCompleteSourceDetails = (
     // predictable. All pp sources will have one generatedSourceId, and it will
     // be the minified source.
     const nonPrettyPrintedVersion = returnValue[source.generatedSourceIds![0]];
-    const canonicalId = lookupCanonicalSourceId(nonPrettyPrintedVersion.canonicalId);
+    const canonicalId = lookupCanonicalSourceId(nonPrettyPrintedVersion.id);
+    maybeLog(`canonical for ${source.sourceId}: ${canonicalId}`);
     returnValue[source.sourceId] = fullSourceDetails({
       canonicalId,
       id: source.sourceId,
@@ -202,11 +227,13 @@ export const newSourcesToCompleteSourceDetails = (
       url: source.url!,
     });
 
-    console.log(`Handling backlinks for pretty-printed ${source.sourceId}`);
+    maybeLog(`Handling backlinks for pretty-printed ${source.sourceId}`);
     nonPrettyPrintedVersion.prettyPrinted = source.sourceId;
     addToCorrespondingSources(source);
     addCanonicalLink(nonPrettyPrintedVersion.id, source.sourceId);
   });
+
+  maybeLog(`after pp: ${obj(returnValue)}, ${obj(canonicalSourcesMap)}`);
 
   // if we see an evaled script or an excerpted script we can mark it as
   // transitive and call the protocol to get its mapped location for first and
