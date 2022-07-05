@@ -2,6 +2,7 @@ import { EntityId } from "@reduxjs/toolkit";
 import { newSource, SourceKind } from "@replayio/protocol";
 import groupBy from "lodash/groupBy";
 import { SourceDetails } from "ui/reducers/sources";
+import newGraph from "./graph";
 
 const fullSourceDetails = (
   attributes: Partial<SourceDetails> & {
@@ -49,17 +50,16 @@ export const newSourcesToCompleteSourceDetails = (
   // sourceMapped source)
   const scriptSources = byKind["scriptSource"] || [];
 
-  // This is a backlink map, so that we don't have to search through the
-  // returnValue list ever.
-  const generatedFromMap: Record<string, string[] | undefined> = {};
+  const generated = newGraph();
   const backLinkGeneratedSource = (source: newSource) => {
     source.generatedSourceIds?.map(generatedId => {
-      if (!generatedFromMap[generatedId]) {
-        generatedFromMap[generatedId] = [];
-      }
-      generatedFromMap[generatedId]!.push(source.sourceId);
+      generated.connectNode(source.sourceId, generatedId);
     });
   };
+
+  const prettyPrinted = newGraph();
+
+  const canonical = newGraph();
 
   // Similar to generatedFromMap, rather than searching by the canonicalID, we
   // can use this map to do a reverse lookup.

@@ -19,20 +19,12 @@ describe("Graph", () => {
     expect(graph.from("b")).toEqual([]);
   });
 
-  it("can have a connection forwarded", () => {
+  it("can have a node connected to itself", () => {
     const graph = newGraph();
 
-    graph.connectNode("a", "c");
-    graph.connectNode("b", "c");
-    graph.forwardNode("c", "d");
+    graph.connectNode("a", "a");
 
-    expect(graph.from("a")).toEqual(["d"]);
-    expect(graph.from("b")).toEqual(["d"]);
-
-    expect(graph.from("c")).toEqual([]);
-    expect(graph.to("c")).toEqual([]);
-
-    expect(graph.from("d")).toEqual([]);
-    expect(graph.to("d")).toEqual(["a", "b"]);
+    expect(graph.from("a")).toEqual(["a"]);
+    expect(graph.to("a")).toEqual(["a"]);
   });
 });

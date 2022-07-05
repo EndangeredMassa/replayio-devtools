@@ -20,7 +20,7 @@ export interface SourceDetails {
   kind: SourceKind;
   prettyPrinted: string | undefined;
   prettyPrintedFrom: string | undefined;
-  url: string;
+  url: string | undefined;
 }
 
 const sourceDetailsAdapter = createEntityAdapter<SourceDetails>();

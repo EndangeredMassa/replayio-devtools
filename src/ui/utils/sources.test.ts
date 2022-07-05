@@ -1,4 +1,4 @@
-import { newSourcesToCompleteSourceDetails } from "./sources";
+import { newSourcesToCompleteSourceDetails } from "./sourcesTwo";
 
 describe("newSourcesToCompleteSourceDetails", () => {
   it("should return empty array when no sources", () => {
@@ -151,7 +151,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
       ])
     ).toEqual({
       "1": {
-        canonicalId: "ppo1",
+        canonicalId: "o1",
         contentHash: "contentHash",
         correspondingSourceIds: [],
         generated: [],
@@ -163,7 +163,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/index.js",
       },
       o1: {
-        canonicalId: "ppo1",
+        canonicalId: "o1",
         contentHash: "contentHash",
         correspondingSourceIds: [],
         generated: ["1"],
@@ -175,11 +175,11 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/src/index.ts",
       },
       pp1: {
-        canonicalId: "ppo1",
+        canonicalId: "o1",
         contentHash: undefined,
         correspondingSourceIds: [],
         generated: [],
-        generatedFrom: ["o1"],
+        generatedFrom: [],
         id: "pp1",
         kind: "prettyPrinted",
         prettyPrinted: undefined,
@@ -187,7 +187,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/src/index.js",
       },
       ppo1: {
-        canonicalId: "ppo1",
+        canonicalId: "o1",
         contentHash: undefined,
         correspondingSourceIds: [],
         generated: [],
