@@ -60,7 +60,23 @@ export const newSourcesToCompleteSourceDetails = (
     existingCanonical.forEach(sourceId => {
       returnValue[sourceId]!.canonicalId = replaceWith;
     });
+    console.log(`Replace ${replace}(${existingCanonical}) -> ${replaceWith}`);
     canonicalSourcesMap[replaceWith] = [...existingCanonical, replaceWith];
+    if (replace !== replaceWith) {
+      delete canonicalSourcesMap[replace];
+    }
+  };
+
+  const lookupCanonicalSourceId = (sourceId: string) => {
+    let candidate = sourceId;
+
+    while (returnValue[candidate] && returnValue[candidate].canonicalId !== candidate) {
+      // Keep following the links
+      candidate = returnValue[candidate].canonicalId;
+    }
+
+    console.log(`Lookup ${sourceId} => ${candidate}`);
+    return candidate;
   };
 
   const correspondingSourcesMap: Record<string, string[] | undefined> = {};
@@ -89,7 +105,6 @@ export const newSourcesToCompleteSourceDetails = (
   const htmlSources = byKind["html"] || [];
   htmlSources.map(source => {
     returnValue[source.sourceId] = fullSourceDetails({
-      canonicalId: source.sourceId,
       contentHash: source.contentHash!,
       generated: source.generatedSourceIds || [],
       generatedFrom: generatedFromMap[source.sourceId] || [],
@@ -100,12 +115,12 @@ export const newSourcesToCompleteSourceDetails = (
 
     backLinkGeneratedSource(source);
     addToCorrespondingSources(source);
-    canonicalSourcesMap[source.sourceId] = [source.sourceId];
+    addCanonicalLink(source.sourceId, source.sourceId);
   });
 
   const inlineScripts = byKind["inlineScript"] || [];
   inlineScripts.map(source => {
-    const canonicalId = generatedFromMap[source.sourceId]![0];
+    const canonicalId = lookupCanonicalSourceId(generatedFromMap[source.sourceId]![0]);
     returnValue[source.sourceId] = fullSourceDetails({
       canonicalId,
       contentHash: source.contentHash,
@@ -127,10 +142,10 @@ export const newSourcesToCompleteSourceDetails = (
 
   const sourceMapped = byKind["sourceMapped"] || [];
   sourceMapped.map(source => {
-    // If this source was source-mapped, then it must have been generated from
-    // some other source. Since we've added all other sources, it must already be here.
+    // If this source was source-mapped, then it must be the canonical source
+    // for the things it generated?
 
-    const canonicalId = generatedFromMap[source.sourceId]![0];
+    const canonicalId = lookupCanonicalSourceId(source.sourceId);
     returnValue[source.sourceId] = fullSourceDetails({
       canonicalId,
       contentHash: source.contentHash,
@@ -144,12 +159,11 @@ export const newSourcesToCompleteSourceDetails = (
     // Link generated sources
     source.generatedSourceIds?.map(generatedId => {
       returnValue[generatedId]!.generatedFrom.push(source.sourceId);
-      addCanonicalLink(generatedId, source.sourceId);
+      addCanonicalLink(generatedId, canonicalId);
     });
 
     backLinkGeneratedSource(source);
     addToCorrespondingSources(source);
-    addCanonicalLink(source.sourceId, canonicalId);
   });
 
   const otherSources = byKind["other"] || [];
@@ -173,7 +187,12 @@ export const newSourcesToCompleteSourceDetails = (
 
   const prettyPrinted = byKind["prettyPrinted"] || [];
   prettyPrinted.map(source => {
-    const canonicalId = source.generatedSourceIds![0];
+    // We handle pretty-printed (pp) files and their generated links a little
+    // differently. Because Replay makes the pp sources, their structure is
+    // predictable. All pp sources will have one generatedSourceId, and it will
+    // be the minified source.
+    const nonPrettyPrintedVersion = returnValue[source.generatedSourceIds![0]];
+    const canonicalId = lookupCanonicalSourceId(nonPrettyPrintedVersion.canonicalId);
     returnValue[source.sourceId] = fullSourceDetails({
       canonicalId,
       id: source.sourceId,
@@ -183,13 +202,10 @@ export const newSourcesToCompleteSourceDetails = (
       url: source.url!,
     });
 
-    // We handle pretty-printed (pp) files and their generated links a little
-    // differently Because Replay makes the pp sources, their
-    // structure is predictable.  All pp sources will have one
-    // generatedSourceId, and it will be the minified source.
-    returnValue[source.generatedSourceIds![0]!]!.prettyPrinted = source.sourceId;
+    console.log(`Handling backlinks for pretty-printed ${source.sourceId}`);
+    nonPrettyPrintedVersion.prettyPrinted = source.sourceId;
     addToCorrespondingSources(source);
-    addCanonicalLink(source.sourceId, canonicalId);
+    addCanonicalLink(nonPrettyPrintedVersion.id, source.sourceId);
   });
 
   // if we see an evaled script or an excerpted script we can mark it as
@@ -198,6 +214,7 @@ export const newSourcesToCompleteSourceDetails = (
   // Oh, ya know what, you only need *one* location because the source will
   // always be the same!
   // Ah, drat, for some reason eval'ed sources in particular are not linked!
-  // That is not a huge problem for this, but eventually it *could* be.
+  // That is not a huge problem right now, but eventually it *could* be.
+
   return returnValue;
 };
