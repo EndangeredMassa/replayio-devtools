@@ -33,7 +33,9 @@ const NewSourcemapToggle = () => {
             This file is a bundle created from {selectedSourceDetails.generatedFrom.length} files.
           </Warning>
         )}
-        {!bundled && selectedSourceDetails.canonicalId !== selectedSourceDetails.id ? (
+        {!bundled &&
+        selectedSourceDetails.canonicalId !== selectedSourceDetails.id &&
+        selectedSourceDetails.canonicalId !== selectedSourceDetails.prettyPrintedFrom ? (
           <Warning>
             This is not the canonical form of this source; it might be harder to work with.&nbsp;
             <span

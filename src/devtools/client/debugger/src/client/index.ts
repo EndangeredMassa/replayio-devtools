@@ -36,7 +36,6 @@ async function setupDebugger() {
   await ThreadFront.findSources(newSource => {
     // @ts-expect-error `sourceMapURL` doesn't exist?
     const { sourceId, url, sourceMapURL } = newSource;
-    store.dispatch(addSource(newSource));
     sourceInfos.push({
       type: "generated",
       data: prepareSourcePayload({
@@ -45,9 +44,12 @@ async function setupDebugger() {
         sourceMapURL,
       }),
     });
+
+    store.dispatch(addSource(newSource));
   });
   await store.dispatch(actions.newQueuedSources(sourceInfos));
   store.dispatch({ type: "SOURCES_LOADED" });
+
   store.dispatch(allSourcesReceived());
 }
 

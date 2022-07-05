@@ -1,4 +1,4 @@
-import { newSourcesToCompleteSourceDetails } from "./sourcesTwo";
+import { newSourcesToCompleteSourceDetails } from "./sources";
 
 describe("newSourcesToCompleteSourceDetails", () => {
   it("should return empty array when no sources", () => {
