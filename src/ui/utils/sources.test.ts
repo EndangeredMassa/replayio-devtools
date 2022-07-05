@@ -120,7 +120,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
     });
   });
 
-  it("can put together original, generated, and pretty-printed sources", () => {
+  it("can combine original, generated, and pretty-printed sources", () => {
     expect(
       newSourcesToCompleteSourceDetails([
         {
@@ -151,7 +151,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
       ])
     ).toEqual({
       "1": {
-        canonicalId: "o1",
+        canonicalId: "ppo1",
         contentHash: "contentHash",
         correspondingSourceIds: [],
         generated: [],
@@ -163,7 +163,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/index.js",
       },
       o1: {
-        canonicalId: "o1",
+        canonicalId: "ppo1",
         contentHash: "contentHash",
         correspondingSourceIds: [],
         generated: ["1"],
@@ -175,11 +175,11 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/src/index.ts",
       },
       pp1: {
-        canonicalId: "1",
+        canonicalId: "ppo1",
         contentHash: undefined,
         correspondingSourceIds: [],
         generated: [],
-        generatedFrom: [],
+        generatedFrom: ["o1"],
         id: "pp1",
         kind: "prettyPrinted",
         prettyPrinted: undefined,
@@ -187,7 +187,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/src/index.js",
       },
       ppo1: {
-        canonicalId: "o1",
+        canonicalId: "ppo1",
         contentHash: undefined,
         correspondingSourceIds: [],
         generated: [],

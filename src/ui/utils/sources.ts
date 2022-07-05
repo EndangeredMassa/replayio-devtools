@@ -42,8 +42,7 @@ export const newSourcesToCompleteSourceDetails = (
 
   const returnValue: Record<EntityId, SourceDetails> = {};
 
-  const generatedFromMap: { [key: string]: string[] | undefined } = {};
-  // Backlink generated sources
+  const generatedFromMap: Record<string, string[] | undefined> = {};
   const backLinkGeneratedSource = (source: newSource) => {
     source.generatedSourceIds?.map(generatedId => {
       if (!generatedFromMap[generatedId]) {
@@ -53,7 +52,18 @@ export const newSourcesToCompleteSourceDetails = (
     });
   };
 
-  const correspondingSourcesMap: { [key: string]: string[] | undefined } = {};
+  // Rather than searching by the canonicalID, we can use this map to do a
+  // reverse lookup.
+  const canonicalSourcesMap: Record<string, string[] | undefined> = {};
+  const addCanonicalLink = (replace: string, replaceWith: string) => {
+    const existingCanonical = canonicalSourcesMap[replace] || [];
+    existingCanonical.forEach(sourceId => {
+      returnValue[sourceId]!.canonicalId = replaceWith;
+    });
+    canonicalSourcesMap[replaceWith] = [...existingCanonical, replaceWith];
+  };
+
+  const correspondingSourcesMap: Record<string, string[] | undefined> = {};
   const addToCorrespondingSources = (source: newSource) => {
     const key = keyForSource(source);
     if (!correspondingSourcesMap[key]) {
@@ -73,6 +83,7 @@ export const newSourcesToCompleteSourceDetails = (
 
     backLinkGeneratedSource(source);
     addToCorrespondingSources(source);
+    canonicalSourcesMap[source.sourceId] = [source.sourceId];
   });
 
   const htmlSources = byKind["html"] || [];
@@ -89,12 +100,14 @@ export const newSourcesToCompleteSourceDetails = (
 
     backLinkGeneratedSource(source);
     addToCorrespondingSources(source);
+    canonicalSourcesMap[source.sourceId] = [source.sourceId];
   });
 
   const inlineScripts = byKind["inlineScript"] || [];
   inlineScripts.map(source => {
+    const canonicalId = generatedFromMap[source.sourceId]![0];
     returnValue[source.sourceId] = fullSourceDetails({
-      canonicalId: generatedFromMap[source.sourceId]![0],
+      canonicalId,
       contentHash: source.contentHash,
       generated: source.generatedSourceIds || [],
       generatedFrom: generatedFromMap[source.sourceId] || [],
@@ -109,12 +122,17 @@ export const newSourcesToCompleteSourceDetails = (
 
     backLinkGeneratedSource(source);
     addToCorrespondingSources(source);
+    addCanonicalLink(source.sourceId, canonicalId);
   });
 
   const sourceMapped = byKind["sourceMapped"] || [];
   sourceMapped.map(source => {
+    // If this source was source-mapped, then it must have been generated from
+    // some other source. Since we've added all other sources, it must already be here.
+
+    const canonicalId = generatedFromMap[source.sourceId]![0];
     returnValue[source.sourceId] = fullSourceDetails({
-      canonicalId: source.sourceId,
+      canonicalId,
       contentHash: source.contentHash,
       generated: source.generatedSourceIds || [],
       generatedFrom: generatedFromMap[source.sourceId] || [],
@@ -126,27 +144,23 @@ export const newSourcesToCompleteSourceDetails = (
     // Link generated sources
     source.generatedSourceIds?.map(generatedId => {
       returnValue[generatedId]!.generatedFrom.push(source.sourceId);
-      returnValue[generatedId]!.canonicalId = source.sourceId;
+      addCanonicalLink(generatedId, source.sourceId);
     });
 
     backLinkGeneratedSource(source);
     addToCorrespondingSources(source);
+    addCanonicalLink(source.sourceId, canonicalId);
   });
 
   const otherSources = byKind["other"] || [];
   otherSources.map(source => {
-    returnValue[source.sourceId] = {
-      canonicalId: source.sourceId,
-      contentHash: source.contentHash!,
-      correspondingSourceIds: [],
+    returnValue[source.sourceId] = fullSourceDetails({
       generated: source.generatedSourceIds || [],
       generatedFrom: generatedFromMap[source.sourceId] || [],
       id: source.sourceId,
       kind: source.kind,
-      prettyPrinted: undefined,
-      prettyPrintedFrom: undefined,
       url: source.url!,
-    };
+    });
 
     // Link generated sources
     source.generatedSourceIds?.map(generatedId => {
@@ -159,11 +173,11 @@ export const newSourcesToCompleteSourceDetails = (
 
   const prettyPrinted = byKind["prettyPrinted"] || [];
   prettyPrinted.map(source => {
+    const canonicalId = source.generatedSourceIds![0];
     returnValue[source.sourceId] = fullSourceDetails({
-      canonicalId: source.generatedSourceIds![0],
+      canonicalId,
       id: source.sourceId,
       kind: source.kind,
-      prettyPrinted: undefined,
       prettyPrintedFrom: source.generatedSourceIds![0]!,
       generatedFrom: generatedFromMap[source.generatedSourceIds![0]] || [],
       url: source.url!,
@@ -175,6 +189,7 @@ export const newSourcesToCompleteSourceDetails = (
     // generatedSourceId, and it will be the minified source.
     returnValue[source.generatedSourceIds![0]!]!.prettyPrinted = source.sourceId;
     addToCorrespondingSources(source);
+    addCanonicalLink(source.sourceId, canonicalId);
   });
 
   // if we see an evaled script or an excerpted script we can mark it as
