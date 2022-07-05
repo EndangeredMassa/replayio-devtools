@@ -9,7 +9,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
     expect(
       newSourcesToCompleteSourceDetails([
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#1",
           kind: "scriptSource",
           sourceId: "1",
           url: "/index.js",
@@ -18,8 +18,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
     ).toEqual({
       "1": {
         canonicalId: "1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#1",
+        correspondingSourceIds: ["1"],
         generated: [],
         generatedFrom: [],
         id: "1",
@@ -35,13 +35,13 @@ describe("newSourcesToCompleteSourceDetails", () => {
     expect(
       newSourcesToCompleteSourceDetails([
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#1",
           kind: "scriptSource",
           sourceId: "1",
           url: "/index.js",
         },
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#o1",
           kind: "sourceMapped",
           sourceId: "o1",
           generatedSourceIds: ["1"],
@@ -51,8 +51,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
     ).toEqual({
       "1": {
         canonicalId: "o1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#1",
+        correspondingSourceIds: ["1"],
         generated: [],
         generatedFrom: ["o1"],
         id: "1",
@@ -63,8 +63,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
       },
       o1: {
         canonicalId: "o1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#o1",
+        correspondingSourceIds: ["o1"],
         generated: ["1"],
         generatedFrom: [],
         id: "o1",
@@ -80,7 +80,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
     expect(
       newSourcesToCompleteSourceDetails([
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#1",
           kind: "scriptSource",
           sourceId: "1",
           url: "/index.js",
@@ -95,8 +95,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
     ).toEqual({
       "1": {
         canonicalId: "1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#1",
+        correspondingSourceIds: ["1"],
         generated: [],
         generatedFrom: [],
         id: "1",
@@ -108,7 +108,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
       pp1: {
         canonicalId: "1",
         contentHash: undefined,
-        correspondingSourceIds: [],
+        correspondingSourceIds: ["pp1"],
         generated: [],
         generatedFrom: [],
         id: "pp1",
@@ -124,13 +124,13 @@ describe("newSourcesToCompleteSourceDetails", () => {
     expect(
       newSourcesToCompleteSourceDetails([
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#1",
           kind: "scriptSource",
           sourceId: "1",
           url: "/index.js",
         },
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#o1",
           generatedSourceIds: ["1"],
           kind: "sourceMapped",
           sourceId: "o1",
@@ -152,8 +152,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
     ).toEqual({
       "1": {
         canonicalId: "o1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#1",
+        correspondingSourceIds: ["1"],
         generated: [],
         generatedFrom: ["o1"],
         id: "1",
@@ -164,8 +164,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
       },
       o1: {
         canonicalId: "o1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#o1",
+        correspondingSourceIds: ["o1"],
         generated: ["1"],
         generatedFrom: [],
         id: "o1",
@@ -177,7 +177,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
       pp1: {
         canonicalId: "o1",
         contentHash: undefined,
-        correspondingSourceIds: [],
+        correspondingSourceIds: ["pp1"],
         generated: [],
         generatedFrom: [],
         id: "pp1",
@@ -189,7 +189,7 @@ describe("newSourcesToCompleteSourceDetails", () => {
       ppo1: {
         canonicalId: "o1",
         contentHash: undefined,
-        correspondingSourceIds: [],
+        correspondingSourceIds: ["ppo1"],
         generated: [],
         generatedFrom: [],
         id: "ppo1",
@@ -205,14 +205,14 @@ describe("newSourcesToCompleteSourceDetails", () => {
     expect(
       newSourcesToCompleteSourceDetails([
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#h1",
           kind: "html",
           sourceId: "h1",
           generatedSourceIds: ["2"],
           url: "/index.html",
         },
         {
-          contentHash: "contentHash",
+          contentHash: "contentHash#2",
           kind: "inlineScript",
           sourceId: "2",
           url: "/index.html",
@@ -221,8 +221,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
     ).toEqual({
       "2": {
         canonicalId: "h1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#2",
+        correspondingSourceIds: ["2"],
         generated: [],
         generatedFrom: ["h1"],
         id: "2",
@@ -233,8 +233,8 @@ describe("newSourcesToCompleteSourceDetails", () => {
       },
       h1: {
         canonicalId: "h1",
-        contentHash: "contentHash",
-        correspondingSourceIds: [],
+        contentHash: "contentHash#h1",
+        correspondingSourceIds: ["h1"],
         generated: ["2"],
         generatedFrom: [],
         id: "h1",
@@ -244,5 +244,49 @@ describe("newSourcesToCompleteSourceDetails", () => {
         url: "/index.html",
       },
     });
+  });
+});
+
+it("can link corresponding sources", () => {
+  expect(
+    newSourcesToCompleteSourceDetails([
+      {
+        contentHash: "contentHash",
+        kind: "html",
+        sourceId: "h1",
+        url: "/index.html",
+      },
+      {
+        contentHash: "contentHash",
+        kind: "html",
+        sourceId: "h2",
+        url: "/index.html",
+      },
+    ])
+  ).toEqual({
+    h1: {
+      canonicalId: "h1",
+      contentHash: "contentHash",
+      correspondingSourceIds: ["h1", "h2"],
+      generated: [],
+      generatedFrom: [],
+      id: "h1",
+      kind: "html",
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      url: "/index.html",
+    },
+    h2: {
+      canonicalId: "h2",
+      contentHash: "contentHash",
+      correspondingSourceIds: ["h1", "h2"],
+      generated: [],
+      generatedFrom: [],
+      id: "h2",
+      kind: "html",
+      prettyPrinted: undefined,
+      prettyPrintedFrom: undefined,
+      url: "/index.html",
+    },
   });
 });
