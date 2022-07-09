@@ -1,4 +1,4 @@
-import { ExecutionPoint, PauseId } from "@replayio/protocol";
+import { ExecutionPoint, PauseId, TimeStampedPointRange } from "@replayio/protocol";
 import { setBreakpointOptions } from "devtools/client/debugger/src/actions/breakpoints/modify";
 import { Breakpoint, getThreadContext } from "devtools/client/debugger/src/selectors";
 import { refetchMessages } from "devtools/client/webconsole/actions/messages";
@@ -38,7 +38,12 @@ import {
   pointsReceived,
 } from "ui/reducers/timeline";
 import { FocusRegion, HoveredItem } from "ui/state/timeline";
-import { getPausePointParams, getTest, updateUrlWithParams } from "ui/utils/environment";
+import {
+  encodeObjectToURL,
+  getPausePointParams,
+  getTest,
+  updateUrlWithParams,
+} from "ui/utils/environment";
 import KeyShortcuts, { isEditableElement } from "ui/utils/key-shortcuts";
 import { features } from "ui/utils/prefs";
 import { trackEvent } from "ui/utils/telemetry";
@@ -50,6 +55,7 @@ import {
   displayedBeginForFocusRegion,
   displayedEndForFocusRegion,
   isTimeInRegions,
+  rangeForFocusRegion,
 } from "ui/utils/timeline";
 
 import {
@@ -62,6 +68,7 @@ import {
 import { getLoadedRegions } from "./app";
 import type { UIStore, UIThunkAction } from "./index";
 import { UIState } from "ui/state";
+import compact from "lodash/compact";
 
 const DEFAULT_FOCUS_WINDOW_PERCENTAGE = 0.2;
 const DEFAULT_FOCUS_WINDOW_MAX_LENGTH = 5000;
@@ -105,17 +112,20 @@ export function jumpToInitialPausePoint(): UIThunkAction {
     );
 
     let hasFrames = false;
+
     const initialPausePoint = await getInitialPausePoint(ThreadFront.recordingId!);
-    if (
-      initialPausePoint &&
-      isTimeInRegions(initialPausePoint.time, getLoadedRegions(state)!.loading)
-    ) {
+
+    if (initialPausePoint) {
+      const range = (initialPausePoint as any).focusRegion;
+      if (range) {
+        dispatch(setFocusRegionBeginTime(range.begin.time, false));
+        dispatch(setFocusRegionEndTime(range.end.time, true));
+      }
       point = initialPausePoint.point;
       hasFrames = initialPausePoint.hasFrames;
       time = initialPausePoint.time;
+      ThreadFront.timeWarp(point, time, hasFrames);
     }
-
-    ThreadFront.timeWarp(point, time, hasFrames);
   };
 }
 
@@ -145,8 +155,15 @@ async function getInitialPausePoint(recordingId: string) {
 }
 
 function onPaused({ point, time, hasFrames }: PauseEventArgs): UIThunkAction {
-  return async dispatch => {
-    updatePausePointParams({ point, time, hasFrames });
+  return async (dispatch, getState) => {
+    const focusRegion = getFocusRegion(getState());
+    const params: PauseEventArgs & { focusRegion: FocusRegion | null } = {
+      focusRegion,
+      hasFrames,
+      point,
+      time,
+    };
+    updatePausePointParams(params);
     dispatch(setTimelineState({ currentTime: time, playback: null }));
   };
 }
@@ -184,12 +201,24 @@ function updatePausePointParams({
   point,
   time,
   hasFrames,
+  focusRegion,
 }: {
   point: ExecutionPoint;
   time: number;
   hasFrames: boolean;
+  focusRegion: FocusRegion | null;
 }) {
-  const params = { point, time: `${time}`, hasFrames: `${hasFrames}` };
+  const params: { point: string; time: string; hasFrames: string; focusRegion?: string } = {
+    point,
+    time: `${time}`,
+    hasFrames: `${hasFrames}`,
+    focusRegion: "",
+  };
+  if (focusRegion) {
+    params.focusRegion = encodeObjectToURL(rangeForFocusRegion(focusRegion));
+  } else {
+    delete params.focusRegion;
+  }
   updateUrlWithParams(params);
 }
 
