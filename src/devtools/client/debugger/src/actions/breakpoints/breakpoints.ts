@@ -155,6 +155,7 @@ export function removeAllBreakpoints(cx: Context): UIThunkAction<Promise<void>> 
 
     const breakpointList = getBreakpointsList(getState());
     await Promise.all(breakpointList.map(bp => dispatch(_removeBreakpoint(cx, bp))));
+    // @ts-ignore I have no clue why TSC thinks this is a payload action?
     dispatch(removeBreakpointsAction());
   };
 }
@@ -303,15 +304,12 @@ export function setBreakpointPrefixBadge(
   breakpoint: Breakpoint,
   prefixBadge?: PrefixBadge
 ): UIThunkAction {
-  return (dispatch, getState, { ThreadFront }) => {
+  return dispatch => {
     dispatch(
-      setBreakpoint(
-        {
-          ...breakpoint,
-          options: { ...breakpoint.options, prefixBadge },
-        },
-        ThreadFront.recordingId!
-      )
+      setBreakpoint({
+        ...breakpoint,
+        options: { ...breakpoint.options, prefixBadge },
+      })
     );
   };
 }

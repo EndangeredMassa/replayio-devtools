@@ -135,11 +135,6 @@ export function breakpointAtLocation(breakpoints: Breakpoint[], { line, column }
   });
 }
 
-function createPendingLocation(location: Location & { sourceUrl: string }) {
-  const { sourceUrl, line, column } = location;
-  return { sourceUrl, line, column };
-}
-
 export function createPendingBreakpoint(bp: Breakpoint): PendingBreakpoint {
   assertPendingLocation(bp.location);
 

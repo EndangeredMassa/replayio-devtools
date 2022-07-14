@@ -12,7 +12,10 @@ import {
   setBreakpoint,
   setRequestedBreakpoint,
 } from "../../reducers/breakpoints";
-import { removePendingBreakpoint } from "../../reducers/pending-breakpoints";
+import {
+  createPendingBreakpoint,
+  removePendingBreakpoint,
+} from "../../reducers/pending-breakpoints";
 import {
   getBreakpoint,
   getBreakpointPositionsForLocation,
@@ -36,7 +39,7 @@ import { Location } from "@replayio/protocol";
 function _setBreakpoint(breakpoint: Breakpoint): UIThunkAction {
   return async (dispatch, getState, { ThreadFront }) => {
     const recordingId = ThreadFront.recordingId!;
-    dispatch(setBreakpoint(breakpoint, recordingId));
+    dispatch(setBreakpoint(breakpoint));
     const sourceDetails = getSourceDetails(getState(), breakpoint.location.sourceId);
     const sourceUrl = sourceDetails?.url!;
     if (!sourceUrl) {
@@ -77,13 +80,12 @@ export function enableBreakpoint(
   initialBreakpoint: Breakpoint
 ): UIThunkAction<Promise<void>> {
   return async (dispatch, getState, { client, ThreadFront }) => {
-    // @ts-expect-error Breakpoint location field mismatch
     const breakpoint = getBreakpoint(getState(), initialBreakpoint.location);
     if (!breakpoint || !breakpoint.disabled) {
       return;
     }
 
-    dispatch(setBreakpoint({ ...breakpoint, disabled: false }, ThreadFront.recordingId!, cx));
+    dispatch(setBreakpoint({ ...breakpoint, disabled: false }));
 
     await client.setBreakpoint(breakpoint.location, breakpoint.options);
   };
@@ -183,14 +185,13 @@ export function _removeBreakpoint(
   cx: Context,
   initialBreakpoint: Breakpoint
 ): UIThunkAction<Promise<void>> {
-  return async (dispatch, getState, { client, ThreadFront }) => {
-    // @ts-expect-error Breakpoint location mismatch
+  return async (dispatch, getState, { client }) => {
     const breakpoint = getBreakpoint(getState(), initialBreakpoint.location);
     if (!breakpoint) {
       return;
     }
 
-    dispatch(removeBreakpoint(breakpoint.location, ThreadFront.recordingId!, cx));
+    dispatch(removeBreakpoint(breakpoint.location));
 
     // If the breakpoint is disabled then it is not installed in the server.
     if (!breakpoint.disabled) {

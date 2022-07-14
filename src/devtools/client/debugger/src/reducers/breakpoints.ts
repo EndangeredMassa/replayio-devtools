@@ -8,6 +8,7 @@ import {
   createSelector,
   PayloadAction,
   EntityState,
+  Slice,
 } from "@reduxjs/toolkit";
 import {
   Location,
@@ -109,7 +110,7 @@ export function initialBreakpointsState(): BreakpointsState {
   };
 }
 
-const breakpointsSlice = createSlice({
+const breakpointsSlice: Slice<BreakpointsState> = createSlice({
   name: "breakpoints",
   initialState: initialBreakpointsState,
   reducers: {
@@ -128,10 +129,8 @@ const breakpointsSlice = createSlice({
         });
 
         // Also remove any requested breakpoint that corresponds to this location
-        breakpointsSlice.caseReducers.removeRequestedBreakpoint(
-          state,
-          breakpointsSlice.actions.removeRequestedBreakpoint(location)
-        );
+        const requestedId = getLocationKey(location);
+        delete state.requestedBreakpoints[requestedId];
       },
       prepare(breakpoint: Breakpoint, recordingId: string, cx?: Context) {
         // Add cx to action.meta
@@ -151,7 +150,7 @@ const breakpointsSlice = createSlice({
 
         mappingsAdapter.removeOne(state.analysisMappings, id);
       },
-      prepare(location: SourceLocation, recordingId: string, cx?: Context) {
+      prepare(location: Location & { sourceUrl: string }, recordingId: string, cx?: Context) {
         // Add cx to action.meta
         return {
           payload: { location, recordingId },
