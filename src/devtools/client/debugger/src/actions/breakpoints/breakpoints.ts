@@ -25,7 +25,6 @@ import {
   getBreakpointAtLocation,
   getFirstBreakpointPosition,
   getSymbols,
-  getThreadContext,
 } from "../../selectors";
 import { getRequestedBreakpointLocations } from "../../selectors/breakpoints";
 import { findClosestEnclosedSymbol } from "../../utils/ast";
@@ -38,7 +37,6 @@ import {
   addBreakpoint,
   enableBreakpoint,
   disableBreakpoint,
-  runAnalysis,
 } from "./modify";
 
 export function addBreakpointAtLine(cx: Context, line: number): UIThunkAction {
@@ -59,10 +57,12 @@ export function removeBreakpointsAtLine(
   return (dispatch, getState) => {
     trackEvent("breakpoint.remove");
 
-    dispatch(removeRequestedBreakpoint({ sourceId, line }));
     const breakpoints = getBreakpointsForSource(getState(), sourceId, line);
 
-    breakpoints.map(bp => dispatch(removeBreakpoint(cx, bp)));
+    breakpoints.map(bp => {
+      dispatch(removeBreakpoint(cx, bp));
+      dispatch(removeRequestedBreakpoint(bp.location));
+    });
   };
 }
 
@@ -229,7 +229,7 @@ export function updateHoveredLineNumber(line: number): UIThunkAction<Promise<voi
       return;
     }
 
-    dispatch(setHoveredLineNumberLocation(location));
+    dispatch(setHoveredLineNumberLocation(location!));
   };
 }
 
