@@ -1,3 +1,4 @@
+import { Location } from "@replayio/protocol";
 import type { AnyAction, Action } from "@reduxjs/toolkit";
 import uniq from "lodash/uniq";
 import { createSelector } from "reselect";
@@ -26,16 +27,6 @@ import {
   getBreakableLinesForSourceActors,
   SourceActor,
 } from "./source-actors";
-import { SourceLocation } from "./types";
-
-export interface Location {
-  url: string;
-  line: number;
-  column?: number;
-  sourceId: string;
-  sourceUrl: string;
-  // other fields? sourceId?
-}
 
 export interface SourceContent {
   state: "pending" | "fulfilled" | "rejected";
@@ -70,11 +61,11 @@ export interface SourcesState {
   plainUrls: Record<string, string[]>;
   content: Record<string, unknown>;
   actors: Record<string, string[]>;
-  breakpointPositions: Record<ResourceId, Record<string, Location>>;
+  breakpointPositions: Record<ResourceId, Record<string, Location & { sourceUrl: string }>>;
   breakableLines: Record<string, number[]>;
   epoch: number;
-  selectedLocation?: Location | null;
-  pendingSelectedLocation?: Location;
+  selectedLocation?: (Location & { sourceUrl: string }) | null;
+  pendingSelectedLocation?: Location & { sourceUrl: string; url?: string };
   selectedLocationHasScrolled: boolean;
   // DEAD
   chromeAndExtensionsEnabled: boolean;
@@ -110,7 +101,7 @@ export function initialSourcesState(): SourcesState {
 
 interface AddBreakpointPositionsAction extends Action<"ADD_BREAKPOINT_POSITIONS"> {
   source: Source;
-  positions: Record<string, Location[]>;
+  positions: Record<string, Location & { sourceUrl: string }[]>;
 }
 
 interface InsertSourceActorsAction extends Action<"INSERT_SOURCE_ACTORS"> {
@@ -734,7 +725,11 @@ export function selectedLocationHasScrolled(state: UIState) {
   return state.sources.selectedLocationHasScrolled;
 }
 
-export function getTextAtLocation(state: UIState, id: string, location: SourceLocation) {
+export function getTextAtLocation(
+  state: UIState,
+  id: string,
+  location: Location & { sourceUrl: string }
+) {
   const source = getSource(state, id);
   if (!source) {
     return null;
