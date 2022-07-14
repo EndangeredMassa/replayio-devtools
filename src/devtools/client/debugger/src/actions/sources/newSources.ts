@@ -63,7 +63,8 @@ function checkSelectedSource(cx: Context, sourceId: string): UIThunkAction {
     const state = getState();
     const pendingLocation = getPendingSelectedLocation(state);
 
-    if (!pendingLocation || !pendingLocation.url) {
+    const pendingUrl = pendingLocation?.url || pendingLocation?.sourceUrl;
+    if (!pendingLocation || pendingUrl) {
       return;
     }
 
@@ -73,7 +74,6 @@ function checkSelectedSource(cx: Context, sourceId: string): UIThunkAction {
       return;
     }
 
-    const pendingUrl = pendingLocation.url;
     const rawPendingUrl = getRawSourceURL(pendingUrl);
 
     if (rawPendingUrl === source.url) {
@@ -108,8 +108,7 @@ function checkPendingBreakpoints(cx: Context, sourceId: string): UIThunkAction {
     }
 
     for (const bp of pendingBreakpoints) {
-      const line = bp.location.line;
-      dispatch(setRequestedBreakpoint({ line, sourceId }));
+      dispatch(setRequestedBreakpoint(bp.location));
     }
 
     // load the source text if there is a pending breakpoint for it

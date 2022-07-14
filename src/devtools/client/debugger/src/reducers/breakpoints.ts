@@ -23,15 +23,12 @@ import type { UIState } from "ui/state";
 import { filterToFocusRegion, isFocusRegionSubset } from "ui/utils/timeline";
 
 import { getBreakpointsList } from "../selectors/breakpoints";
-import assert from "../utils/assert";
 import { getLocationKey, isMatchingLocation, isLogpoint } from "../utils/breakpoint";
 
 import { getSelectedSource } from "./sources";
 import type { Breakpoint, SourceLocation } from "./types";
 import { FocusRegion } from "ui/state/timeline";
 export type { Breakpoint } from "./types";
-
-type LocationWithoutColumn = Omit<Location, "column">;
 
 export enum AnalysisStatus {
   // Happy path
@@ -87,7 +84,7 @@ export interface BreakpointsState {
    * Indicates which breakpoints have been optimistically added and
    * are still being processed by the Replay backend server
    */
-  requestedBreakpoints: Record<string, LocationWithoutColumn>;
+  requestedBreakpoints: Record<string, Location>;
   /**
    * Analysis entries associated with breakpoints, keyed by GUID.
    */
@@ -145,7 +142,10 @@ const breakpointsSlice = createSlice({
       },
     },
     removeBreakpoint: {
-      reducer(state, action: PayloadAction<{ location: SourceLocation; recordingId: string }>) {
+      reducer(
+        state,
+        action: PayloadAction<{ location: Location & { sourceUrl: string }; recordingId: string }>
+      ) {
         const id = getLocationKey(action.payload.location);
         delete state.breakpoints[id];
 
@@ -159,14 +159,14 @@ const breakpointsSlice = createSlice({
         };
       },
     },
-    setRequestedBreakpoint(state, action: PayloadAction<LocationWithoutColumn>) {
+    setRequestedBreakpoint(state, action: PayloadAction<Location>) {
       const location = action.payload;
       // @ts-ignore intentional field check
       assert(!location.column, "location should have no column");
       const requestedId = getLocationKey(location);
       state.requestedBreakpoints[requestedId] = location;
     },
-    removeRequestedBreakpoint(state, action: PayloadAction<LocationWithoutColumn>) {
+    removeRequestedBreakpoint(state, action: PayloadAction<Location>) {
       const requestedId = getLocationKey({ ...action.payload, column: undefined });
       delete state.requestedBreakpoints[requestedId];
     },
