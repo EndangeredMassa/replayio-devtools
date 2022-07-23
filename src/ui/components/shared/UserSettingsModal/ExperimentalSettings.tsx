@@ -28,10 +28,11 @@ const EXPERIMENTAL_SETTINGS: ExperimentalSetting[] = [
     description: "Mark a replay as resolved",
     key: "enableResolveRecording",
   },
+
   {
-    label: "Inline hit counts",
-    description: "Show line hit counts in the source view",
-    key: "hitCounts",
+    label: "Recording Cache",
+    description: "Cache requests so that recordings load faster over time",
+    key: "queryCache",
   },
 ];
 
@@ -72,6 +73,7 @@ export default function ExperimentalSettings({}) {
   );
 
   const { value: hitCounts, update: updateHitCounts } = useFeature("hitCounts");
+  const { value: queryCache, update: updateQueryCache } = useFeature("enableQueryCache");
 
   const onChange = (key: ExperimentalKey, value: any) => {
     if (key == "enableColumnBreakpoints") {
@@ -80,6 +82,8 @@ export default function ExperimentalSettings({}) {
       updateEnableResolveRecording(!enableResolveRecording);
     } else if (key === "enableNewObjectInspector") {
       updateEnableNewObjectInspector(!enableNewObjectInspector);
+    } else if (key === "queryCache") {
+      updateQueryCache(!queryCache);
     } else if (key === "hitCounts") {
       updateHitCounts(!hitCounts);
     }
@@ -90,6 +94,7 @@ export default function ExperimentalSettings({}) {
     enableResolveRecording,
     hitCounts,
     enableNewObjectInspector,
+    queryCache,
   };
 
   const settings = { ...userSettings, ...localSettings };
@@ -100,7 +105,7 @@ export default function ExperimentalSettings({}) {
 
   return (
     <div className="space-y-6 overflow-auto">
-      <div className="flex flex-col p-1 space-y-2">
+      <div className="flex flex-col space-y-2 p-1">
         {EXPERIMENTAL_SETTINGS.map(setting => (
           <Experiment
             onChange={onChange}
@@ -111,7 +116,7 @@ export default function ExperimentalSettings({}) {
         ))}
         {RISKY_EXPERIMENTAL_SETTINGS.length > 0 && (
           <div>
-            <div className="flex items-center my-4 ">
+            <div className="my-4 flex items-center ">
               <Icon
                 filename="warning"
                 className="mr-2"
