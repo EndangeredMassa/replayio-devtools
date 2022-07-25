@@ -12,20 +12,22 @@ import { basename } from "../utils/path";
 import debounce from "lodash/debounce";
 import actions from "../actions";
 import {
-  getSourceList,
   getQuickOpenEnabled,
   getQuickOpenQuery,
   getQuickOpenType,
   getQuickOpenProject,
-  getSelectedSource,
-  getSourceContent,
-  getSourcesLoading,
   getSymbols,
   getTabs,
-  getDisplayedSources,
   isSymbolsLoading,
   getContext,
 } from "../selectors";
+import {
+  getAllSourceDetails,
+  getSelectedSource,
+  getSourcesLoading,
+  getSourceContentsLoaded,
+  getSourceDetailsEntities,
+} from "ui/reducers/sources";
 import { setViewMode } from "ui/actions/layout";
 import { getViewMode } from "ui/reducers/layout";
 import { memoizeLast } from "../utils/memoizeLast";
@@ -41,7 +43,6 @@ import SearchInput from "./shared/SearchInput";
 import ResultList from "./shared/ResultList";
 import { trackEvent } from "ui/utils/telemetry";
 import { getGlobalFunctions, isGlobalFunctionsLoading } from "../reducers/ast";
-import { getSourceCount } from "../reducers/sources";
 
 const maxResults = 100;
 
@@ -59,6 +60,43 @@ function filter(values: SearchResult[], query: string) {
     preparedQuery,
   });
 }
+
+function mapStateToProps(state: UIState) {
+  const selectedSource = getSelectedSource(state)!;
+  const tabs = getTabs(state);
+
+  const sourceList = getAllSourceDetails(state);
+
+  return {
+    cx: getContext(state),
+    displayedSources: getSourceDetailsEntities(state),
+    enabled: getQuickOpenEnabled(state),
+    globalFunctions: getGlobalFunctions(state) || [],
+    globalFunctionsLoading: isGlobalFunctionsLoading(state),
+    project: getQuickOpenProject(state),
+    query: getQuickOpenQuery(state),
+    searchType: getQuickOpenType(state),
+    selectedContentLoaded: selectedSource
+      ? getSourceContentsLoaded(state, selectedSource.id)
+      : undefined,
+    selectedSource,
+    sourceList,
+    sourceCount: sourceList.length,
+    sourcesLoading: getSourcesLoading(state),
+    symbols: formatSymbols(getSymbols(state, selectedSource)),
+    symbolsLoading: isSymbolsLoading(state, selectedSource),
+    tabs,
+    viewMode: getViewMode(state),
+  };
+}
+
+const connector = connect(mapStateToProps, {
+  closeQuickOpen: actions.closeQuickOpen,
+  highlightLineRange: actions.highlightLineRange,
+  selectSpecificLocation: actions.selectSpecificLocation,
+  setQuickOpenQuery: actions.setQuickOpenQuery,
+  setViewMode,
+});
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
@@ -478,40 +516,5 @@ export class QuickOpenModal extends Component<PropsFromRedux, QOMState> {
     );
   }
 }
-
-function mapStateToProps(state: UIState) {
-  const selectedSource = getSelectedSource(state)!;
-  const tabs = getTabs(state);
-
-  return {
-    cx: getContext(state),
-    displayedSources: getDisplayedSources(state),
-    enabled: getQuickOpenEnabled(state),
-    globalFunctions: getGlobalFunctions(state),
-    globalFunctionsLoading: isGlobalFunctionsLoading(state),
-    project: getQuickOpenProject(state),
-    query: getQuickOpenQuery(state),
-    searchType: getQuickOpenType(state),
-    selectedContentLoaded: selectedSource
-      ? !!getSourceContent(state, selectedSource.id)
-      : undefined,
-    selectedSource,
-    sourceCount: getSourceCount(state),
-    sourceList: getSourceList(state),
-    sourcesLoading: getSourcesLoading(state),
-    symbols: formatSymbols(getSymbols(state, selectedSource)),
-    symbolsLoading: isSymbolsLoading(state, selectedSource),
-    tabs,
-    viewMode: getViewMode(state),
-  };
-}
-
-const connector = connect(mapStateToProps, {
-  closeQuickOpen: actions.closeQuickOpen,
-  highlightLineRange: actions.highlightLineRange,
-  selectSpecificLocation: actions.selectSpecificLocation,
-  setQuickOpenQuery: actions.setQuickOpenQuery,
-  setViewMode,
-});
 
 export default connector(QuickOpenModal);

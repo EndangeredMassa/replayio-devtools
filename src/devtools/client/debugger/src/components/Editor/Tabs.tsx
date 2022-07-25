@@ -10,14 +10,13 @@ import type { UIState } from "ui/state";
 
 import Tab from "./Tab";
 
-import { getSelectedSource, getSourcesForTabs, getIsPaused, getContext } from "../../selectors";
+import { getSourcesForTabs, getIsPaused, getContext } from "../../selectors";
+import { getSelectedSource, SourceDetails } from "ui/reducers/sources";
 import { isPretty } from "../../utils/source";
 import actions from "../../actions";
 import { trackEvent } from "ui/utils/telemetry";
 import CommandPaletteButton from "./CommandPaletteButton";
 import { getToolboxLayout } from "ui/reducers/layout";
-
-import type { Source } from "devtools/client/debugger/src/reducers/sources";
 
 const mapStateToProps = (state: UIState) => ({
   selectedSource: getSelectedSource(state),
@@ -33,7 +32,7 @@ const connector = connect(mapStateToProps, {
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
 class Tabs extends PureComponent<PropsFromRedux> {
-  _draggedSource: Source | { url: null; id: null } | null = null;
+  _draggedSource: SourceDetails | { url: null; id: null } | null = null;
   _draggedSourceIndex: number | null = null;
 
   componentDidUpdate(prevProps: PropsFromRedux) {
@@ -81,7 +80,7 @@ class Tabs extends PureComponent<PropsFromRedux> {
     return this._draggedSource == null ? { url: null, id: null } : this._draggedSource;
   }
 
-  set draggedSource(source: Source | { url: null; id: null } | null) {
+  set draggedSource(source: SourceDetails | { url: null; id: null } | null) {
     this._draggedSource = source;
   }
 
@@ -93,7 +92,7 @@ class Tabs extends PureComponent<PropsFromRedux> {
     this._draggedSourceIndex = index;
   }
 
-  getIconClass(source: Source) {
+  getIconClass(source: SourceDetails) {
     if (isPretty(source)) {
       return "prettyPrint";
     }
@@ -106,7 +105,7 @@ class Tabs extends PureComponent<PropsFromRedux> {
     return "file";
   }
 
-  onTabDragStart = (source: Source, index: number) => {
+  onTabDragStart = (source: SourceDetails, index: number) => {
     trackEvent("tabs.drag_start");
     this.draggedSource = source;
     this.draggedSourceIndex = index;
@@ -118,7 +117,7 @@ class Tabs extends PureComponent<PropsFromRedux> {
     this.draggedSourceIndex = null;
   };
 
-  onTabDragOver = (e: React.MouseEvent, source: Source, hoveredTabIndex: number) => {
+  onTabDragOver = (e: React.MouseEvent, source: SourceDetails, hoveredTabIndex: number) => {
     const { moveTabBySourceId } = this.props;
     if (hoveredTabIndex === this.draggedSourceIndex) {
       return;
