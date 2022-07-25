@@ -39,12 +39,6 @@ class Debugger extends Component<DebuggerProps> {
     return { shortcuts: this.shortcuts, l10n: L10N };
   };
 
-  childContextTypes = {
-    globalShortcuts: PropTypes.object,
-    shortcuts: PropTypes.object,
-    l10n: PropTypes.object,
-  };
-
   componentDidMount() {
     this.props.refreshCodeMirror();
   }
@@ -78,6 +72,13 @@ class Debugger extends Component<DebuggerProps> {
     );
   }
 }
+
+// @ts-expect-error legacy context usage
+Debugger.childContextTypes = {
+  globalShortcuts: PropTypes.object,
+  shortcuts: PropTypes.object,
+  l10n: PropTypes.object,
+};
 
 function DebuggerLoader(props: any) {
   const wrapperNode = useRef<HTMLDivElement>(null);

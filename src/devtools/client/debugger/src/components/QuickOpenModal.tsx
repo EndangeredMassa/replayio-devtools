@@ -66,6 +66,7 @@ function mapStateToProps(state: UIState) {
   const tabs = getTabs(state);
 
   const sourceList = getAllSourceDetails(state);
+  const symbols = getSymbols(state, selectedSource);
 
   return {
     cx: getContext(state),
@@ -83,7 +84,8 @@ function mapStateToProps(state: UIState) {
     sourceList,
     sourceCount: sourceList.length,
     sourcesLoading: getSourcesLoading(state),
-    symbols: formatSymbols(getSymbols(state, selectedSource)),
+    // @ts-expect-error weird {loading} type mismatch
+    symbols: formatSymbols(symbols),
     symbolsLoading: isSymbolsLoading(state, selectedSource),
     tabs,
     viewMode: getViewMode(state),
@@ -189,13 +191,14 @@ export class QuickOpenModal extends Component<PropsFromRedux, QOMState> {
   }
 
   searchFunctions(query: string) {
-    let fns = this.getFunctions();
+    let fns = this.getFunctions() as SearchResult[];
 
     if (query === "@" || query === "#") {
       return this.setResults(fns);
     }
-    fns = filter(fns, query.slice(1));
-    return this.setResults(fns);
+
+    const filteredFns = filter(fns, query.slice(1));
+    return this.setResults(filteredFns);
   }
 
   searchShortcuts = (query: string) => {
